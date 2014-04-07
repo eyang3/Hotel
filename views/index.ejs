@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <h1><%= title %></h1>
+    <p>Welcome to <%= title %></p>
+     <form action="10001/ReviewVideo/Bedroom" method="post" enctype="multipart/form-data">
+	<label for="file">Filename:</label>
+<input type="hidden" name="stars" value=3>
+<input type="file" name="file" id="file" enctype="multipart/form-data"><br>
+<input type="submit" name="submit" value="Submit">
+     </form>
+  </body>
+</html>
