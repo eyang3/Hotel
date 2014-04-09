@@ -43,7 +43,7 @@ function handleDisconnect() {
     connection.connect(function(err) {});
     connection.on('error', function(err) {
         console.log('db error', err);
-        if (err.code == 'PROTOCOL_CONNECTION_LIST') {
+        if (err.code == 'PROTOCOL_CONNECTION_LOST') {
             connection.connect(function(err) {});
             handleDisconnect();
         }
@@ -183,7 +183,7 @@ passport.deserializeUser(function(obj, done) {
 
 app.post('/CreateLocalUser', function(req, res) {
     var userid = parseInt(uuid.v1().toString(), 16);
-    var name = req.body.full_name;
+    var name = req.body.fullname;
     var email = req.body.email;
     var query = connection.query('insert into LocalUser values(?, ?, ?, ?)', [req.body.username, bcrypt.hashSync(req.body.password), userid, email], function(err, result) {
         connection.query('insert into Users (userid, name) values (?,?)', [userid, name], null);
@@ -198,7 +198,7 @@ app.post('/CreateLocalUser', function(req, res) {
             res.send({
                 status: "success",
                 output: {
-                    user_id: userid
+                    userid: userid
                 }
             });
         }
@@ -250,20 +250,27 @@ app.get('/FacebookLogout', function(req, res) {
 
 
 app.get(/^\/(\d+)\/ListVenueReview/, function(req, res) {
-    var query = connection.query('select  reviewid, stars, comment, name  from ReviewText, Users where venueid = ? and ReviewText.userid = Users.userid', req.params[0], function(err, result) {
+	var location = req.query.location;
+	console.log(req.params);
+	var sqlString = 'select  Users.userid,  Users.imageurl, ReviewText.reviewid, Videos.stars, comment, name, videourl, thumburl, location,  count(Likes.videoid) as numlikes, count(commentid) as numComments from Videos left join Likes on Likes.videoid = Videos.videoid , ReviewText left join Comment on Comment.reviewid = ReviewText.reviewid, Users  where venueid = ? and ReviewText.userid = Users.userid and Videos.reviewid = ReviewText.reviewid group by Videos.videoid';
+	if(location) {
+		sqlString = 'select  Users.userid,  Users.imageurl, ReviewText.reviewid, Videos.stars, comment, name, videourl, thumburl, location,  count(Likes.videoid) as numlikes, count(commentid) as numComments from Videos left join Likes on Likes.videoid = Videos.videoid , ReviewText left join Comment on Comment.reviewid = ReviewText.reviewid, Users  where venueid = ? and ReviewText.userid = Users.userid and Videos.reviewid = ReviewText.reviewid and Videos.location = ? group by Videos.videoid';
+	}
+    var query = connection.query(sqlString, [req.params[0], location], function(err, result) {
+	console.log(err);
         if (err) {
             res.send({
                 status: "error",
                 message: err
             });
         } else {
+
             res.send({
                 status: "success",
                 output: result
             });
         }
-    });
-});
+    }); });
 
 app.get('/Venues', function(req, res) {
     var query = connection.query('select * from Venue', null, function(err, result) {
@@ -485,7 +492,7 @@ app.get(/^\/(\d+)\/Pref/, function(req, res) {
 
 
 app.get(/^\/(\d+)\/ListVideos/, function(req, res) {
-    var query = connection.query('select  videoid, reviewid, videourl, ThumbURL, location from Videos where reviewid = ?', req.params[0], function(err, result) {
+    var query = connection.query('select  videoid, reviewid, videourl, thumburl, location from Videos where reviewid = ?', req.params[0], function(err, result) {
         res.send({
             status: "success",
             output: result
@@ -510,7 +517,7 @@ app.put(/^\/(\d+)\/Likes\/(\d+)/, function(req, res) {
 });
 
 app.get(/^\/(\d+)\/WhoLikes/, function(req, res) {
-    var query = connection.query('select User, name, imageURL  from Likes,Users  where videoid = ? and Likes.User = Users.userid', req.params[0], function(err, result) {
+    var query = connection.query('select userid, name, imageurl  from Likes,Users  where videoid = ? and Likes.User = Users.userid', req.params[0], function(err, result) {
         if (err) {
             res.send({
                 status: "error",
@@ -660,7 +667,9 @@ app.post(/^\/(\d+)\/ReviewVideo\/([A-Za-z]+)/, function(req, res) {
 });
 app.post(/^\/(\d+)\/PostComment\/(\d+)/, function(req, res) {
     var commentid = parseInt(uuid.v1().toString(), 16);
-    var query = connection.query('insert into comment values (?,?,?,?,?)', [commentid, new Date(), req.body.title, req.body.content, req.params[0], req.params[1]], function(err, result) {
+    
+    var query = connection.query('insert into Comment values (?,?,?,?,?,?)', [commentid, new Date(), req.body.title, req.body.content, req.params[0], req.params[1]], function(err, result) {
+	console.log(err);
         if (err) {
             res.send({
                 status: "error",
@@ -675,7 +684,7 @@ app.post(/^\/(\d+)\/PostComment\/(\d+)/, function(req, res) {
 });
 
 app.get(/^\/(\d+)\/ReviewComments/, function(req, res) {
-    var query = connection.query('select commentid, created, title, content, userid, name, imageURL from Comment, Users where Users.userid = Comment.userid and reviewid = ?', req.params[0], function(err, result) {
+    var query = connection.query('select commentid, created, title, content, Users.userid, Users.name, imageURL from Comment, Users where Users.userid = Comment.userid and reviewid = ?', req.params[0], function(err, result) {
         if (err) {
             res.send({
                 status: "error",
@@ -730,6 +739,10 @@ function uploadFile(path, name, callback) {
     //var job = AzureObject.Job("Test", z);
 }
 app.post("/SearchVenues", Expedia.expediaSearch);
+app.get(/^\/(\d+)\/ForgotPassword/, function(req, res) {
+});
+
+
 app.get(/^\/(\d+)\/VenueInfo/, Expedia.expediaInfo);
 app.get("/Tips", function(req, res) {
     var query = connection.query('select * from Categories', req.params[0], function(err, result) {
