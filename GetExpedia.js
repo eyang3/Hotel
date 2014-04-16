@@ -52,7 +52,7 @@ var options = {
 		var hotels = result.HotelListResponse.HotelList.HotelSummary;
 		var length = hotels.length;
 		for(var i = 0; i<length; i++) {
-			var data = [hotels[i].hotelId, hotels[i].name, hotels[i].countryCode, hotels[i].city, hotels[i].thumbNailUrl, hotels[i].shortDescription, hotels[i].address1 + '\n' + hotels[i].address, hotels[i].longitude, hotels[i].latitude, hotels[i].deepLink];
+			var data = [hotels[i].hotelId, hotels[i].name, hotels[i].countryCode, hotels[i].city, hotels[i].thumbNailUrl, hotels[i].shortDescription, hotels[i].address1 + '\n' + hotels[i].address2, hotels[i].longitude, hotels[i].latitude, hotels[i].deepLink];
 			(function(data) {
 				var m = data;
 				connection.query('insert into Venue values (?, ?, ?, ?, ?, ?, ?, ?)', data, function(err, result) {
